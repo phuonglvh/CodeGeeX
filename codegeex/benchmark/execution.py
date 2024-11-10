@@ -41,7 +41,7 @@ def dicts_to_jsonl(data_list: list, filename: str, compress: bool = True) -> Non
                 out.write(jout)
 
 
-def unsafe_execute(tmp_dir, lowered_language, timeout, result):
+def unsafe_execute(tmp_eval_dir, lowered_language, timeout, problem_generation, result):
     random_id = random.uniform(1, 1000)
     if "python" in lowered_language.lower():
         with create_tempdir():
@@ -84,14 +84,14 @@ def unsafe_execute(tmp_dir, lowered_language, timeout, result):
             os.chdir = chdir
 
     elif "go" in lowered_language.lower():
-        assert tmp_dir is not None, "Go should be evaluated in a dir where necessary module files installed."
+        assert tmp_eval_dir is not None, "Go should be evaluated in a dir where necessary module files installed."
 
         import os
         import shutil
 
-        if "tmp" not in tmp_dir:
-            tmp_dir = os.path.join(tmp_dir, "tmp")
-        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if "tmp" not in tmp_eval_dir:
+            tmp_eval_dir = os.path.join(tmp_eval_dir, "tmp")
+        tmp_dir = os.path.join(tmp_eval_dir, f"{task_id.replace('/', '-')}-{random_id}")
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
 
@@ -134,9 +134,9 @@ def unsafe_execute(tmp_dir, lowered_language, timeout, result):
         import os
         import shutil
 
-        if "tmp" not in tmp_dir:
-            tmp_dir = os.path.join(tmp_dir, "tmp")
-        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if "tmp" not in tmp_eval_dir:
+            tmp_eval_dir = os.path.join(tmp_eval_dir, "tmp")
+        tmp_dir = os.path.join(tmp_eval_dir, f"{task_id.replace('/', '-')}-{random_id}")
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
 
@@ -173,9 +173,9 @@ def unsafe_execute(tmp_dir, lowered_language, timeout, result):
         import os
         import shutil
 
-        if "tmp" not in tmp_dir:
-            tmp_dir = os.path.join(tmp_dir, "tmp")
-        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if "tmp" not in tmp_eval_dir:
+            tmp_eval_dir = os.path.join(tmp_eval_dir, "tmp")
+        tmp_dir = os.path.join(tmp_eval_dir, f"{task_id.replace('/', '-')}-{random_id}")
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
 
@@ -294,14 +294,14 @@ def unsafe_execute(tmp_dir, lowered_language, timeout, result):
 
 
     elif "java" in lowered_language.lower():
-        assert tmp_dir is not None, "Java should be evaluated in a temporary dir."
+        assert tmp_eval_dir is not None, "Java should be evaluated in a temporary dir."
 
         import os
         import shutil
 
-        if "tmp" not in tmp_dir:
-            tmp_dir = os.path.join(tmp_dir, "tmp")
-        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if "tmp" not in tmp_eval_dir:
+            tmp_eval_dir = os.path.join(tmp_eval_dir, "tmp")
+        tmp_dir = os.path.join(tmp_eval_dir, f"{task_id.replace('/', '-')}-{random_id}")
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
 
@@ -353,7 +353,7 @@ def check_correctness(
         problem_generation: dict,
         lowered_language: str,
         timeout: float = 3.0,
-        tmp_dir: str = None,
+        tmp_eval_dir: str = None,
         completion_id: Optional[int] = None,
 ) -> Dict:
     """
@@ -364,7 +364,7 @@ def check_correctness(
     result = manager.list()
 
     p = multiprocessing.Process(
-        target=unsafe_execute, args=(tmp_dir, lowered_language, timeout, result))
+        target=unsafe_execute, args=(tmp_eval_dir, lowered_language, timeout, problem_generation, result))
     p.start()
     p.join(timeout=timeout + 1)
     if p.is_alive():
