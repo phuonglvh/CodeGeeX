@@ -71,15 +71,15 @@ error_types = {
 
 
 def inspect_result(
-        input_dir: str = None,
-        input_file: str = None,
+        generations_dir: str = None,
+        generations_path: str = None,
         output_dir: str = None,
         pass_at_k_outpath: str = None,
 ):
-    if input_dir is not None:
-        input_files = glob.glob(input_dir + "/*_results.jsonl")
+    if generations_dir is not None:
+        input_files = glob.glob(generations_dir + "/*_results.jsonl")
     else:
-        input_files = [input_file]
+        input_files = [generations_path]
 
     if output_dir is not None:
         if not os.path.exists(output_dir):
@@ -88,11 +88,11 @@ def inspect_result(
         output_dir = "/"
 
     pass_at_k_outs = []
-    for input_file in input_files:
+    for generations_path in input_files:
         result_stats = defaultdict(dict)
         df = None
         incompleted = False
-        with open(input_file, "r") as f:
+        with open(generations_path, "r") as f:
             for i, line in enumerate(f):
                 obj = json.loads(line)
                 task_id = obj["task_id"]
@@ -238,7 +238,7 @@ def inspect_result(
                         result_stats[task_id]["accepted"] += 1
 
         if incompleted:
-            print(f"Language not supported, aborted. {input_file}")
+            print(f"Language not supported, aborted. {generations_path}")
         else:
             try:
                 total, correct = [], []
@@ -256,11 +256,11 @@ def inspect_result(
                             for k in ks if (total >= k).all()}
 
                 print(pass_at_k)
-                pass_at_k["file"] = input_file
+                pass_at_k["file"] = generations_path
                 pass_at_k["n"] = res["n_sample"]
                 pass_at_k_outs.append(pass_at_k)
 
-                output_prefix = input_file.split("/")[-1].split(".jsonl")[0]
+                output_prefix = generations_path.split("/")[-1].split(".jsonl")[0]
                 output_file = os.path.join(output_dir, output_prefix + "_stats.xlsx")
                 df = df.sort_index(ascending=True)
                 df.to_excel(output_file)
@@ -268,7 +268,7 @@ def inspect_result(
                 print(f"Stats saved in {output_file}")
             except Exception as e:
                 print(e)
-                print(f"Data incompleted, aborted. {input_file}")
+                print(f"Data incompleted, aborted. {generations_path}")
                 
     if pass_at_k_outpath is not None:
         jsonl_path = os.path.join(output_dir, pass_at_k_outpath)

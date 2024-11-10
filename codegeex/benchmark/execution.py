@@ -43,8 +43,8 @@ def dicts_to_jsonl(data_list: list, filename: str, compress: bool = True) -> Non
 
 def check_correctness(
         task_id: str,
-        sample: dict,
-        language_type: str,
+        problem_generation: dict,
+        lowered_language: str,
         timeout: float = 3.0,
         tmp_dir: str = None,
         completion_id: Optional[int] = None,
@@ -56,7 +56,7 @@ def check_correctness(
 
     def unsafe_execute(tmp_dir):
         random_id = random.uniform(1, 1000)
-        if "python" in language_type.lower():
+        if "python" in lowered_language.lower():
             with create_tempdir():
 
                 # These system calls are needed when cleaning up tempdir.
@@ -82,7 +82,7 @@ def check_correctness(
                             # does not perform destructive actions on their host or network.
                             # Once you have read this disclaimer and taken appropriate precautions,
                             # uncomment the following line and proceed at your own risk:
-                            exec(sample["test_code"], exec_globals)
+                            exec(problem_generation["test_code"], exec_globals)
                         result.append("passed")
                 except TimeoutException:
                     result.append("timed out")
@@ -96,7 +96,7 @@ def check_correctness(
                 os.rmdir = rmdir
                 os.chdir = chdir
 
-        elif "go" in language_type.lower():
+        elif "go" in lowered_language.lower():
             assert tmp_dir is not None, "Go should be evaluated in a dir where necessary module files installed."
 
             import os
@@ -109,7 +109,7 @@ def check_correctness(
                 os.makedirs(tmp_dir)
 
             os.chdir(tmp_dir)
-            open(f"main_test.go", 'w').write(sample["test_code"])
+            open(f"main_test.go", 'w').write(problem_generation["test_code"])
             try:
                 exec_result = None
                 with time_limit(timeout):
@@ -143,7 +143,7 @@ def check_correctness(
                 result.append("timed out")
 
             shutil.rmtree(tmp_dir)
-        elif "js" in language_type.lower():
+        elif "js" in lowered_language.lower():
             import os
             import shutil
 
@@ -154,7 +154,7 @@ def check_correctness(
                 os.makedirs(tmp_dir)
 
             os.chdir(tmp_dir)
-            open(f"test.js", 'w').write(sample["test_code"])
+            open(f"test.js", 'w').write(problem_generation["test_code"])
             try:
                 exec_result = None
                 with time_limit(timeout):
@@ -182,7 +182,7 @@ def check_correctness(
                 result.append("timed out")
 
             shutil.rmtree(tmp_dir)
-        elif "cpp" in language_type.lower():
+        elif "cpp" in lowered_language.lower():
             import os
             import shutil
 
@@ -193,7 +193,7 @@ def check_correctness(
                 os.makedirs(tmp_dir)
 
             os.chdir(tmp_dir)
-            open(f"test.cpp", 'w').write(sample["test_code"])
+            open(f"test.cpp", 'w').write(problem_generation["test_code"])
             if "162" in task_id:
                 compilation_result = subprocess.run(["/usr/bin/g++", "-std=c++11", "test.cpp", "-lcrypto", "-lssl"],
                                                     timeout=timeout,
@@ -240,7 +240,7 @@ def check_correctness(
                     result.append("timed out")
 
             shutil.rmtree(tmp_dir)
-        elif "rust" in language_type.lower():  
+        elif "rust" in lowered_language.lower():  
             import os         
             
             WD: str = os.path.dirname(os.path.abspath(__file__))
@@ -259,13 +259,13 @@ def check_correctness(
 
             with tempfile.NamedTemporaryFile(dir = RUST_BIN, delete=False) as f:
                 #temporal file name
-                file_prefix = sample["task_id"].lower().replace("/", "_")
+                file_prefix = problem_generation["task_id"].lower().replace("/", "_")
                 file_name:str =  file_prefix +RUST_EXT
                 
                 os.rename(f.name, os.path.join(RUST_BIN, file_name))
                 
                 # Sample to pure Rust function
-                rust_code: str = sample["test_code"]
+                rust_code: str = problem_generation["test_code"]
 
                 # dump the rust source code in the target temporal file
                 f.write(rust_code.encode('utf-8'))
@@ -306,7 +306,7 @@ def check_correctness(
                 result.append(f"failed: compilation error")
 
 
-        elif "java" in language_type.lower():
+        elif "java" in lowered_language.lower():
             assert tmp_dir is not None, "Java should be evaluated in a temporary dir."
 
             import os
@@ -319,7 +319,7 @@ def check_correctness(
                 os.makedirs(tmp_dir)
 
             os.chdir(tmp_dir)
-            open(os.path.join(tmp_dir, "Main.java"), 'w').write(sample["test_code"])
+            open(os.path.join(tmp_dir, "Main.java"), 'w').write(problem_generation["test_code"])
             res = "failed: unknown error"
             compile_returncode = -1
             for _ in range(5):
@@ -375,14 +375,14 @@ def check_correctness(
     return {
         "task_id"      : task_id,
         "completion_id": completion_id,
-        "test_code"    : sample["test_code"],
-        "prompt"       : sample["prompt"],
-        "generation"   : sample["generation"],
+        "test_code"    : problem_generation["test_code"],
+        "prompt"       : problem_generation["prompt"],
+        "generation"   : problem_generation["generation"],
         "result"       : result[0],
         "passed"       : result[0] == "passed",
-        "finish"       : -1 if "finish" not in sample else sample["finish"],
-        "file"         : "" if "file" not in sample else sample["file"],
-        "output"       : [] if "output" not in sample else sample["output"],
+        "finish"       : -1 if "finish" not in problem_generation else problem_generation["finish"],
+        "file"         : "" if "file" not in problem_generation else problem_generation["file"],
+        "output"       : [] if "output" not in problem_generation else problem_generation["output"],
     }
 
 # Copyright (c) OpenAI (https://openai.com)

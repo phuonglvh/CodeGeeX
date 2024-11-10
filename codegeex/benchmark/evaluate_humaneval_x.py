@@ -97,11 +97,11 @@ def stream_jsonl_all(filename: str) -> Iterable[Dict]:
 
 
 def evaluate_functional_correctness(
-        input_file: str = None,
+        generations_path: str = None,
         tmp_dir: str = "./",
         n_workers: int = 32,
         timeout: float = 500.0,
-        problem_file: str = "../data/humaneval_python.jsonl.gz",
+        dataset_path: str = "../data/humaneval_python.jsonl.gz",
         out_dir: str = None,
         k: List[int] = [1, 10, 100],
         test_groundtruth: bool = False,
@@ -110,9 +110,8 @@ def evaluate_functional_correctness(
     if example_test:
         print("Example test...")
 
-    problems = read_dataset(problem_file,
-                            dataset_type="humaneval")
-    sample_jsonl = stream_jsonl_all(input_file)
+    dataset_problems = read_dataset(dataset_path, dataset_type="humaneval")
+    generations_jsonl = stream_jsonl_all(generations_path)
 
     if example_test:
         suffix = "_example_test.jsonl"
@@ -121,14 +120,14 @@ def evaluate_functional_correctness(
     if out_dir is not None:
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
-        out_file = os.path.join(out_dir, input_file.split('/')[-1].replace(".jsonl", suffix))
+        out_file = os.path.join(out_dir, generations_path.split('/')[-1].replace(".jsonl", suffix))
     else:
-        out_file = os.path.join(input_file.replace(".jsonl", suffix))
+        out_file = os.path.join(generations_path.replace(".jsonl", suffix))
 
-    if "/codegeex/benchmark/humaneval-x/" in input_file:
+    if "/codegeex/benchmark/humaneval-x/" in generations_path:
         test_groundtruth = True
 
-    if "-to-" in input_file:
+    if "-to-" in generations_path:
         translation_mode = True
     else:
         translation_mode = False
@@ -142,14 +141,14 @@ def evaluate_functional_correctness(
 
         if test_groundtruth:
             print("Testing ground truth...")
-            for sample in tqdm(problems.values()):
+            for sample in tqdm(dataset_problems.values()):
                 task_id = sample["task_id"]
                 lang = task_id.split("/")[0].lower()
                 if lang == "javascript":
                     lang = "js"
                 tmp_dir_ = os.path.join(tmp_dir, lang, "evaluation")
                 sample["generation"] = sample["canonical_solution"]
-                sample["test_code"] = process_humaneval_test(sample, problems, example_test)
+                sample["test_code"] = process_humaneval_test(sample, dataset_problems, example_test)
                 if sample["test_code"] is None:
                     continue
                 args = (task_id, sample, lang, timeout, tmp_dir_, completion_id[task_id])
@@ -159,12 +158,12 @@ def evaluate_functional_correctness(
                 n_samples += 1
         else:
             print("Reading samples...")
-            for sample in tqdm(sample_jsonl):
+            for sample in tqdm(generations_jsonl):
                 task_id = sample["task_id"]
                 lang = task_id.split("/")[0].lower()
                 if translation_mode:
                     task_id = sample["task_id"].split("/")[-1]
-                    lang = regex.findall("-to-.*-", input_file)[0].split("-to-")[-1].rstrip("-")
+                    lang = regex.findall("-to-.*-", generations_path)[0].split("-to-")[-1].rstrip("-")
                     for l in LANGUAGE_NAME:
                         if l in lang:
                             lang = l
@@ -174,7 +173,7 @@ def evaluate_functional_correctness(
                     lang = "js"
                 tmp_dir_ = os.path.join(tmp_dir, lang, "evaluation")
                 sample["task_id"] = task_id
-                sample["test_code"] = process_humaneval_test(sample, problems, example_test)
+                sample["test_code"] = process_humaneval_test(sample, dataset_problems, example_test)
                 if sample["test_code"] is None:
                     continue
                 if "completion_id" in sample:
@@ -188,7 +187,7 @@ def evaluate_functional_correctness(
                 n_samples += 1
 
         print(completion_id)
-        if len(completion_id) == len(problems):
+        if len(completion_id) == len(dataset_problems):
             evaluate_pass_at_k = True
         else:
             evaluate_pass_at_k = False
