@@ -12,7 +12,7 @@ In HumanEval-X, every sample in each language contains declaration, docstring, a
 
 ## How to use HumanEval-X
 
-Data are stored in ``codegeex/benchmark/humaneval-x/[LANG]/data/humaneval_[LANG].jsonl.gz``, using JSON list format. There are six keys:
+Data are stored in ``codegeex/benchmark/humanevalx/[LANG]/data/humaneval_[LANG].jsonl.gz``, using JSON list format. There are six keys:
 
 *   ``task_id``: indicates the target language and ID of the problem. Language is one of ["Python", "Java", "JavaScript", "CPP", "Go"].
 *   ``prompt``: the function declaration and docstring, used for code generation.

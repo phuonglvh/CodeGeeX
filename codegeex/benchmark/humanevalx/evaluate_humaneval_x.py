@@ -125,7 +125,7 @@ def evaluate_functional_correctness(
     else:
         out_file = os.path.join(input_file.replace(".jsonl", suffix))
 
-    if "/codegeex/benchmark/humaneval-x/" in input_file:
+    if "/codegeex/benchmark/humanevalx/" in input_file:
         test_groundtruth = True
 
     if "-to-" in input_file:

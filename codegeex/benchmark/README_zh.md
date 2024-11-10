@@ -12,7 +12,7 @@ HumanEval-X中每个语言的样本，包含了声明、描述和解答，它们
 
 ## 如何使用HumanEval-X
 
-样本使用JSON列表格式存储在``codegeex/benchmark/humaneval-x/[LANG]/data/humaneval_[LANG].jsonl.gz``，每条样本包含6个部分：
+样本使用JSON列表格式存储在``codegeex/benchmark/humanevalx/[LANG]/data/humaneval_[LANG].jsonl.gz``，每条样本包含6个部分：
 
 *   ``task_id``: 题目的目标语言与ID。语言为["Python", "Java", "JavaScript", "CPP", "Go"]中之一。
 *   ``prompt``: 函数声明与描述，用于代码生成。

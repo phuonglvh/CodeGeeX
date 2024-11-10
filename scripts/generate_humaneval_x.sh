@@ -51,18 +51,18 @@ if [ -z "$LANGUAGE" ]; then
 fi
 
 if [ -z "$INPUT_PATH" ]; then
-  INPUT_PATH=$MAIN_DIR/codegeex/benchmark/humaneval-x/$LANGUAGE/data/humaneval_$LANGUAGE.jsonl.gz
+  INPUT_PATH=$MAIN_DIR/codegeex/benchmark/humanevalx/$LANGUAGE/data/humaneval_$LANGUAGE.jsonl.gz
 fi
 
 if [ -z "$OUTPUT_PATH" ]; then
-  OUTPUT_PATH=$MAIN_DIR/codegeex/benchmark/output/humaneval-x/codegeex/
+  OUTPUT_PATH=$MAIN_DIR/codegeex/benchmark/output/humanevalx/codegeex/
   mkdir -p "$OUTPUT_PATH"
 fi
 
 JOB_ID=codegeex-ns$NUM_SAMPLES-t$TEMP-topp$TOPP-seed$SEED-$LANGUAGE
 
 RUN_CMD="python \
-  $MAIN_DIR/codegeex/benchmark/humaneval-x/generate_humaneval_x.py \
+  $MAIN_DIR/codegeex/benchmark/humanevalx/generate_humaneval_x.py \
   --hostfile $HOSTLIST \
   --channel-ip $ZMQ_ADDR \
   --channel-port $CHANNEL_PORT \

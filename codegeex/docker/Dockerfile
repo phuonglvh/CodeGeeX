@@ -33,7 +33,7 @@ RUN curl -o /workspace/download/jdk.tar.gz -SL https://download.oracle.com/java/
     && java_path=`ls /usr/java/${path}` && echo "export JAVA_HOME=/usr/java/${java_path}" >> ~/.profile
 
 RUN git clone https://github.com/THUDM/CodeGeeX.git && pip install -e /workspace/CodeGeeX \
-    && tar -zxf /workspace/CodeGeeX/codegeex/benchmark/humaneval-x/go/evaluation/vendor.tar.gz -C /workspace/CodeGeeX/codegeex/benchmark/humaneval-x/go/evaluation
+    && tar -zxf /workspace/CodeGeeX/codegeex/benchmark/humanevalx/go/evaluation/vendor.tar.gz -C /workspace/CodeGeeX/codegeex/benchmark/humanevalx/go/evaluation
 
 SHELL ["sh", "-lc"]
 RUN update-alternatives --install /usr/bin/java java $JAVA_HOME/bin/java 20000 \

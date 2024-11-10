@@ -58,7 +58,7 @@ def read_dataset(
     if "humaneval" in dataset_type.lower():
         if data_file is None:
             current_path = os.path.dirname(os.path.abspath(__file__))
-            data_file = os.path.join(current_path, "..", "humaneval-x", "python", "data", "humaneval_python.jsonl.gz")
+            data_file = os.path.join(current_path, "..", "humanevalx", "python", "data", "humaneval_python.jsonl.gz")
         dataset = {task["task_id"]: task for task in stream_jsonl(data_file)}
     else:
         raise f"Dataset: {dataset_type} not supported."

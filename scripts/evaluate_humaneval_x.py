@@ -38,17 +38,17 @@ print(f'SCRIPT_DIR={SCRIPT_DIR}')
 MAIN_DIR: str = os.path.dirname(SCRIPT_DIR)
 print(f'MAIN_DIR={MAIN_DIR}')
 
-DATASET_PATH = os.path.join(MAIN_DIR, f"codegeex/benchmark/humaneval-x/{LANGUAGE}/data/humaneval_{LANGUAGE}.jsonl.gz")
+DATASET_PATH = os.path.join(MAIN_DIR, f"codegeex/benchmark/humanevalx/{LANGUAGE}/data/humaneval_{LANGUAGE}.jsonl.gz")
 print(f'DATASET_PATH={DATASET_PATH}')
 
-TMP_DIR=os.path.join(MAIN_DIR, "/codegeex/benchmark/humaneval-x/")
+TMP_DIR=os.path.join(MAIN_DIR, "/codegeex/benchmark/humanevalx/")
 print(f'TMP_DIR={TMP_DIR}')
 
 
 #Debugging
 # GENERATIONS_PATH='/home/rog0d/Escritorio/CodeGeeX/generations/humaneval_rust_generations.jsonl.gz'
 # LANGUAGE='rust'
-# DATASET_PATH=os.path.join(MAIN_DIR,"codegeex/benchmark/humaneval-x/" + LANGUAGE + "/data/humaneval_" + LANGUAGE + ".jsonl.gz")
+# DATASET_PATH=os.path.join(MAIN_DIR,"codegeex/benchmark/humanevalx/" + LANGUAGE + "/data/humaneval_" + LANGUAGE + ".jsonl.gz")
 
 """
         generations_path: str = None,

@@ -59,23 +59,23 @@ fi
 
 if [ -z "$INPUT_SRC_PATH" ]
 then
-    INPUT_SRC_PATH=$MAIN_DIR/codegeex/benchmark/humaneval-x/$LANG_SRC_TYPE/data/humaneval_$LANG_SRC_TYPE.jsonl.gz
+    INPUT_SRC_PATH=$MAIN_DIR/codegeex/benchmark/humanevalx/$LANG_SRC_TYPE/data/humaneval_$LANG_SRC_TYPE.jsonl.gz
 fi
 
 if [ -z "$INPUT_TGT_PATH" ]
 then
-    INPUT_TGT_PATH=$MAIN_DIR/codegeex/benchmark/humaneval-x/$LANG_TGT_TYPE/data/humaneval_$LANG_TGT_TYPE.jsonl.gz
+    INPUT_TGT_PATH=$MAIN_DIR/codegeex/benchmark/humanevalx/$LANG_TGT_TYPE/data/humaneval_$LANG_TGT_TYPE.jsonl.gz
 fi
 
 if [ -z "$OUTPUT_PATH" ]; then
-  OUTPUT_PATH=$MAIN_DIR/codegeex/benchmark/output/humaneval-x/codegeex/
+  OUTPUT_PATH=$MAIN_DIR/codegeex/benchmark/output/humanevalx/codegeex/
   mkdir -p "$OUTPUT_PATH"
 fi
 
 JOB_ID=codegeex-ns$NUM_SAMPLES-t$TEMP-topp$TOPP-seed$SEED-$LANGUAGE
 
 RUN_CMD="python \
-  $MAIN_DIR/codegeex/benchmark/humaneval-x/translate_humaneval_x.py \
+  $MAIN_DIR/codegeex/benchmark/humanevalx/translate_humaneval_x.py \
   --hostfile $HOSTLIST \
   --channel-ip $ZMQ_ADDR \
   --channel-port $CHANNEL_PORT \

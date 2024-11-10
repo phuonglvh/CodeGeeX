@@ -28,7 +28,7 @@ then
     TIMEOUT=5
 fi
 
-DATASET_PATH="$MAIN_DIR/codegeex/benchmark/humaneval-x/$LANGUAGE/data/humaneval_$LANGUAGE.jsonl.gz"
+DATASET_PATH="$MAIN_DIR/codegeex/benchmark/humanevalx/$LANGUAGE/data/humaneval_$LANGUAGE.jsonl.gz"
 
 if [ "$LANGUAGE" = go ]; then
   export PATH=$PATH:/usr/local/go/bin
@@ -38,10 +38,10 @@ if [ "$LANGUAGE" = cpp ]; then
   export PATH=$PATH:/usr/bin/openssl
 fi
 
-CMD="python $MAIN_DIR/codegeex/benchmark/humaneval-x/evaluate_humaneval_x.py \
+CMD="python $MAIN_DIR/codegeex/benchmark/humanevalx/evaluate_humaneval_x.py \
     --load_generations_path $LOAD_GENERATIONS_PATH \
     --n_workers $N_WORKERS \
-    --tmp_dir $MAIN_DIR/codegeex/benchmark/humaneval-x/ \
+    --tmp_dir $MAIN_DIR/codegeex/benchmark/humanevalx/ \
     --dataset_path $DATASET_PATH \
     --timeout $TIMEOUT"
 
