@@ -1,7 +1,7 @@
 import argparse
 import os
 from pathlib import Path
-from codegeex.benchmark.evaluate_humaneval_x import evaluate_functional_correctness
+from codegeex.benchmark.humanevalx.evaluate_humaneval_x import evaluate_functional_correctness
 #GLOBALS
 GENERATIONS_PATH: str  
 LANGUAGE: str  
