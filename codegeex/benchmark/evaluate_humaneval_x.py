@@ -209,7 +209,7 @@ def evaluate_functional_correctness(
         ks = k
         pass_at_k = {f"pass@{k}": estimate_pass_at_k(total, correct, k).mean()
                      for k in ks if (total >= k).all()}
-        print(pass_at_k)
+        print({key: f"{value * 100:.2f}%" for key, value in pass_at_k.items()})
     else:
         print("Total:", np.sum(total))
         print("Correct:", np.sum(correct))
