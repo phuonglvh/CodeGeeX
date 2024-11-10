@@ -18,7 +18,7 @@
                 "--dataset_path",
                 "${workspaceFolder}/codegeex/benchmark/humaneval-x/python/data/humaneval_python.jsonl.gz",
                 "--n_workers",
-                "8",
+                "6",
                 "--timeout",
                 "5",
             ]

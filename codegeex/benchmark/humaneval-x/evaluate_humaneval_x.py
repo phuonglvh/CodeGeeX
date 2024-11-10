@@ -154,6 +154,8 @@ def evaluate_functional_correctness(
                 if lang == "javascript":
                     lang = "js"
                 tmp_eval_dir = os.path.join(tmp_dir, lang, "evaluation")
+                print(f'tmp_eval_dir={tmp_eval_dir}')
+
                 problem_generation["generation"] = problem_generation["canonical_solution"]
                 problem_generation["test_code"] = create_complete_test_program(problem_generation, dataset_problems, example_test)
                 if problem_generation["test_code"] is None:
@@ -179,6 +181,8 @@ def evaluate_functional_correctness(
                 if lang == "javascript":
                     lang = "js"
                 tmp_eval_dir = os.path.join(tmp_dir, lang, "evaluation")
+                print(f'tmp_eval_dir={tmp_eval_dir}')
+                
                 problem_generation["task_id"] = task_id
                 problem_generation["test_code"] = create_complete_test_program(problem_generation, dataset_problems, example_test)
                 if problem_generation["test_code"] is None:

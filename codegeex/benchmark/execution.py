@@ -41,75 +41,160 @@ def dicts_to_jsonl(data_list: list, filename: str, compress: bool = True) -> Non
                 out.write(jout)
 
 
-def check_correctness(
-        task_id: str,
-        problem_generation: dict,
-        lowered_language: str,
-        timeout: float = 3.0,
-        tmp_dir: str = None,
-        completion_id: Optional[int] = None,
-) -> Dict:
-    """
-    Evaluates the functional correctness of a completion by running the test
-    suite provided in the problem.
-    """
+def unsafe_execute(tmp_dir, lowered_language, timeout, result):
+    random_id = random.uniform(1, 1000)
+    if "python" in lowered_language.lower():
+        with create_tempdir():
 
-    def unsafe_execute(tmp_dir):
-        random_id = random.uniform(1, 1000)
-        if "python" in lowered_language.lower():
-            with create_tempdir():
-
-                # These system calls are needed when cleaning up tempdir.
-                import os
-                import shutil
-                rmtree = shutil.rmtree
-                rmdir = os.rmdir
-                chdir = os.chdir
-
-                # Disable functionalities that can make destructive changes to the test.
-                reliability_guard()
-
-                try:
-                    exec_globals = {}
-                    with swallow_io():
-                        with time_limit(timeout):
-                            # WARNING
-                            # This program exists to execute untrusted model-generated code. Although
-                            # it is highly unlikely that model-generated code will do something overtly
-                            # malicious in response to this test suite, model-generated code may act
-                            # destructively due to a lack of model capability or alignment.
-                            # Users are strongly encouraged to sandbox this evaluation suite so that it
-                            # does not perform destructive actions on their host or network.
-                            # Once you have read this disclaimer and taken appropriate precautions,
-                            # uncomment the following line and proceed at your own risk:
-                            exec(problem_generation["test_code"], exec_globals)
-                        result.append("passed")
-                except TimeoutException:
-                    result.append("timed out")
-                except AssertionError as e:
-                    result.append(f"failed: AssertionError")
-                except BaseException as e:
-                    result.append(f"failed: {e}")
-
-                # Needed for cleaning up.
-                shutil.rmtree = rmtree
-                os.rmdir = rmdir
-                os.chdir = chdir
-
-        elif "go" in lowered_language.lower():
-            assert tmp_dir is not None, "Go should be evaluated in a dir where necessary module files installed."
-
+            # These system calls are needed when cleaning up tempdir.
             import os
             import shutil
+            rmtree = shutil.rmtree
+            rmdir = os.rmdir
+            chdir = os.chdir
 
-            if "tmp" not in tmp_dir:
-                tmp_dir = os.path.join(tmp_dir, "tmp")
-            tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
-            if not os.path.exists(tmp_dir):
-                os.makedirs(tmp_dir)
+            # Disable functionalities that can make destructive changes to the test.
+            reliability_guard()
 
-            os.chdir(tmp_dir)
-            open(f"main_test.go", 'w').write(problem_generation["test_code"])
+            try:
+                exec_globals = {}
+                with swallow_io():
+                    with time_limit(timeout):
+                        # WARNING
+                        # This program exists to execute untrusted model-generated code. Although
+                        # it is highly unlikely that model-generated code will do something overtly
+                        # malicious in response to this test suite, model-generated code may act
+                        # destructively due to a lack of model capability or alignment.
+                        # Users are strongly encouraged to sandbox this evaluation suite so that it
+                        # does not perform destructive actions on their host or network.
+                        # Once you have read this disclaimer and taken appropriate precautions,
+                        # uncomment the following line and proceed at your own risk:
+                        exec(problem_generation["test_code"], exec_globals)
+                    result.append("passed")
+            except TimeoutException:
+                result.append("timed out")
+            except AssertionError as e:
+                result.append(f"failed: AssertionError")
+            except BaseException as e:
+                result.append(f"failed: {e}")
+
+            # Needed for cleaning up.
+            shutil.rmtree = rmtree
+            os.rmdir = rmdir
+            os.chdir = chdir
+
+    elif "go" in lowered_language.lower():
+        assert tmp_dir is not None, "Go should be evaluated in a dir where necessary module files installed."
+
+        import os
+        import shutil
+
+        if "tmp" not in tmp_dir:
+            tmp_dir = os.path.join(tmp_dir, "tmp")
+        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+
+        os.chdir(tmp_dir)
+        open(f"main_test.go", 'w').write(problem_generation["test_code"])
+        try:
+            exec_result = None
+            with time_limit(timeout):
+                # WARNING
+                # This program exists to execute untrusted model-generated code. Although
+                # it is highly unlikely that model-generated code will do something overtly
+                # malicious in response to this test suite, model-generated code may act
+                # destructively due to a lack of model capability or alignment.
+                # Users are strongly encouraged to sandbox this evaluation suite so that it
+                # does not perform destructive actions on their host or network.
+                # Once you have read this disclaimer and taken appropriate precautions,
+                # uncomment the following line and proceed at your own risk:
+                    exec_result = subprocess.run(["go", "test", f"-timeout={timeout}s", "main_test.go"], timeout=timeout, capture_output=True)
+
+            if exec_result.returncode == 0:
+                result.append("passed")
+            else:
+                if exec_result.stderr:
+                    try:
+                        err = exec_result.stderr.decode()
+                    except:
+                        err = exec_result.stderr
+                else:
+                    try:
+                        err = exec_result.stdout.decode()
+                    except:
+                        err = exec_result.stdout
+                result.append(f"failed: {err}")
+
+        except TimeoutException:
+            result.append("timed out")
+
+        shutil.rmtree(tmp_dir)
+    elif "js" in lowered_language.lower():
+        import os
+        import shutil
+
+        if "tmp" not in tmp_dir:
+            tmp_dir = os.path.join(tmp_dir, "tmp")
+        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+
+        os.chdir(tmp_dir)
+        open(f"test.js", 'w').write(problem_generation["test_code"])
+        try:
+            exec_result = None
+            with time_limit(timeout):
+                # WARNING
+                # This program exists to execute untrusted model-generated code. Although
+                # it is highly unlikely that model-generated code will do something overtly
+                # malicious in response to this test suite, model-generated code may act
+                # destructively due to a lack of model capability or alignment.
+                # Users are strongly encouraged to sandbox this evaluation suite so that it
+                # does not perform destructive actions on their host or network.
+                # Once you have read this disclaimer and taken appropriate precautions,
+                # uncomment the following line and proceed at your own risk:
+                    exec_result = subprocess.run(["node", "test.js"], timeout=timeout, capture_output=True)
+
+            if exec_result.stderr.decode():
+                err = exec_result.stderr.decode()
+                result.append(f"failed: {err}")
+            elif exec_result.stdout.decode():
+                err = exec_result.stdout.decode()
+                result.append(f"failed: {err}")
+            else:
+                result.append("passed")
+
+        except TimeoutException:
+            result.append("timed out")
+
+        shutil.rmtree(tmp_dir)
+    elif "cpp" in lowered_language.lower():
+        import os
+        import shutil
+
+        if "tmp" not in tmp_dir:
+            tmp_dir = os.path.join(tmp_dir, "tmp")
+        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+
+        os.chdir(tmp_dir)
+        open(f"test.cpp", 'w').write(problem_generation["test_code"])
+        if "162" in task_id:
+            compilation_result = subprocess.run(["/usr/bin/g++", "-std=c++11", "test.cpp", "-lcrypto", "-lssl"],
+                                                timeout=timeout,
+                                                capture_output=True)
+        else:
+            compilation_result = subprocess.run(["/usr/bin/g++", "-std=c++11", "test.cpp"], timeout=timeout,
+                                                capture_output=True)
+        if compilation_result.returncode != 0:
+            if compilation_result.stderr:
+                err = compilation_result.stderr.decode()
+            else:
+                err = compilation_result.stdout.decode()
+            result.append(f"failed: compilation error: {err}")
+        else:
             try:
                 exec_result = None
                 with time_limit(timeout):
@@ -122,7 +207,7 @@ def check_correctness(
                     # does not perform destructive actions on their host or network.
                     # Once you have read this disclaimer and taken appropriate precautions,
                     # uncomment the following line and proceed at your own risk:
-                     exec_result = subprocess.run(["go", "test", f"-timeout={timeout}s", "main_test.go"], timeout=timeout, capture_output=True)
+                        exec_result = subprocess.run(["./a.out"], timeout=timeout, capture_output=True)
 
                 if exec_result.returncode == 0:
                     result.append("passed")
@@ -138,232 +223,148 @@ def check_correctness(
                         except:
                             err = exec_result.stdout
                     result.append(f"failed: {err}")
-
             except TimeoutException:
                 result.append("timed out")
 
-            shutil.rmtree(tmp_dir)
-        elif "js" in lowered_language.lower():
-            import os
-            import shutil
+        shutil.rmtree(tmp_dir)
+    elif "rust" in lowered_language.lower():  
+        import os         
+        
+        WD: str = os.path.dirname(os.path.abspath(__file__))
+        RUST_DIR: str = os.path.join(WD, "rust")
+        RUST_SRC: str = os.path.join(RUST_DIR, "src")
+        RUST_BIN: str = os.path.join(RUST_SRC, "bin")
+        RUST_TMP_DIR: str = os.path.join(RUST_DIR, "tmp")
+        RUST_LOGS: str = os.path.join(RUST_TMP_DIR, "logs")
+        RUST_EXT: str = ".rs" 
 
-            if "tmp" not in tmp_dir:
-                tmp_dir = os.path.join(tmp_dir, "tmp")
-            tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
-            if not os.path.exists(tmp_dir):
-                os.makedirs(tmp_dir)
+        # Create mandatory tmp directories
+        os.makedirs(RUST_TMP_DIR, exist_ok=True)
+        os.makedirs(RUST_LOGS, exist_ok=True)
+        os.makedirs(RUST_SRC, exist_ok=True)
+        os.makedirs(RUST_BIN, exist_ok=True)
 
-            os.chdir(tmp_dir)
-            open(f"test.js", 'w').write(problem_generation["test_code"])
-            try:
-                exec_result = None
-                with time_limit(timeout):
-                    # WARNING
-                    # This program exists to execute untrusted model-generated code. Although
-                    # it is highly unlikely that model-generated code will do something overtly
-                    # malicious in response to this test suite, model-generated code may act
-                    # destructively due to a lack of model capability or alignment.
-                    # Users are strongly encouraged to sandbox this evaluation suite so that it
-                    # does not perform destructive actions on their host or network.
-                    # Once you have read this disclaimer and taken appropriate precautions,
-                    # uncomment the following line and proceed at your own risk:
-                     exec_result = subprocess.run(["node", "test.js"], timeout=timeout, capture_output=True)
-
-                if exec_result.stderr.decode():
-                    err = exec_result.stderr.decode()
-                    result.append(f"failed: {err}")
-                elif exec_result.stdout.decode():
-                    err = exec_result.stdout.decode()
-                    result.append(f"failed: {err}")
-                else:
-                    result.append("passed")
-
-            except TimeoutException:
-                result.append("timed out")
-
-            shutil.rmtree(tmp_dir)
-        elif "cpp" in lowered_language.lower():
-            import os
-            import shutil
-
-            if "tmp" not in tmp_dir:
-                tmp_dir = os.path.join(tmp_dir, "tmp")
-            tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
-            if not os.path.exists(tmp_dir):
-                os.makedirs(tmp_dir)
-
-            os.chdir(tmp_dir)
-            open(f"test.cpp", 'w').write(problem_generation["test_code"])
-            if "162" in task_id:
-                compilation_result = subprocess.run(["/usr/bin/g++", "-std=c++11", "test.cpp", "-lcrypto", "-lssl"],
-                                                    timeout=timeout,
-                                                    capture_output=True)
-            else:
-                compilation_result = subprocess.run(["/usr/bin/g++", "-std=c++11", "test.cpp"], timeout=timeout,
-                                                    capture_output=True)
-            if compilation_result.returncode != 0:
-                if compilation_result.stderr:
-                    err = compilation_result.stderr.decode()
-                else:
-                    err = compilation_result.stdout.decode()
-                result.append(f"failed: compilation error: {err}")
-            else:
-                try:
-                    exec_result = None
-                    with time_limit(timeout):
-                        # WARNING
-                        # This program exists to execute untrusted model-generated code. Although
-                        # it is highly unlikely that model-generated code will do something overtly
-                        # malicious in response to this test suite, model-generated code may act
-                        # destructively due to a lack of model capability or alignment.
-                        # Users are strongly encouraged to sandbox this evaluation suite so that it
-                        # does not perform destructive actions on their host or network.
-                        # Once you have read this disclaimer and taken appropriate precautions,
-                        # uncomment the following line and proceed at your own risk:
-                         exec_result = subprocess.run(["./a.out"], timeout=timeout, capture_output=True)
-
-                    if exec_result.returncode == 0:
-                        result.append("passed")
-                    else:
-                        if exec_result.stderr:
-                            try:
-                                err = exec_result.stderr.decode()
-                            except:
-                                err = exec_result.stderr
-                        else:
-                            try:
-                                err = exec_result.stdout.decode()
-                            except:
-                                err = exec_result.stdout
-                        result.append(f"failed: {err}")
-                except TimeoutException:
-                    result.append("timed out")
-
-            shutil.rmtree(tmp_dir)
-        elif "rust" in lowered_language.lower():  
-            import os         
+        with tempfile.NamedTemporaryFile(dir = RUST_BIN, delete=False) as f:
+            #temporal file name
+            file_prefix = problem_generation["task_id"].lower().replace("/", "_")
+            file_name:str =  file_prefix +RUST_EXT
             
-            WD: str = os.path.dirname(os.path.abspath(__file__))
-            RUST_DIR: str = os.path.join(WD, "rust")
-            RUST_SRC: str = os.path.join(RUST_DIR, "src")
-            RUST_BIN: str = os.path.join(RUST_SRC, "bin")
-            RUST_TMP_DIR: str = os.path.join(RUST_DIR, "tmp")
-            RUST_LOGS: str = os.path.join(RUST_TMP_DIR, "logs")
-            RUST_EXT: str = ".rs" 
-
-            # Create mandatory tmp directories
-            os.makedirs(RUST_TMP_DIR, exist_ok=True)
-            os.makedirs(RUST_LOGS, exist_ok=True)
-            os.makedirs(RUST_SRC, exist_ok=True)
-            os.makedirs(RUST_BIN, exist_ok=True)
-
-            with tempfile.NamedTemporaryFile(dir = RUST_BIN, delete=False) as f:
-                #temporal file name
-                file_prefix = problem_generation["task_id"].lower().replace("/", "_")
-                file_name:str =  file_prefix +RUST_EXT
-                
-                os.rename(f.name, os.path.join(RUST_BIN, file_name))
-                
-                # Sample to pure Rust function
-                rust_code: str = problem_generation["test_code"]
-
-                # dump the rust source code in the target temporal file
-                f.write(rust_code.encode('utf-8'))
-
-            # Proceed towards Rust binaries compilation. Therefore move to Rust module root dir.
-            os.chdir(RUST_DIR)
-
-            # Two possible outcomes
-            # Pass OR Fail compilation
-            log_filename: str = file_prefix + ".jsonl"
-            log_path: str = os.path.join(RUST_LOGS, log_filename)
-            cargo_check: str = "cargo check --bin " + file_prefix + " --message-format json >> " + log_path
-            # Compilation build status
-            returned_val_compilation: int
+            os.rename(f.name, os.path.join(RUST_BIN, file_name))
             
-            # Overwrite file content
-            if os.path.exists(log_path):
-                if(file_size := os.path.getsize(log_path)) >= 0: 
-                    os.remove(log_path)
-                    returned_val_compilation = os.system(cargo_check)
+            # Sample to pure Rust function
+            rust_code: str = problem_generation["test_code"]
 
-            else: 
+            # dump the rust source code in the target temporal file
+            f.write(rust_code.encode('utf-8'))
+
+        # Proceed towards Rust binaries compilation. Therefore move to Rust module root dir.
+        os.chdir(RUST_DIR)
+
+        # Two possible outcomes
+        # Pass OR Fail compilation
+        log_filename: str = file_prefix + ".jsonl"
+        log_path: str = os.path.join(RUST_LOGS, log_filename)
+        cargo_check: str = "cargo check --bin " + file_prefix + " --message-format json >> " + log_path
+        # Compilation build status
+        returned_val_compilation: int
+        
+        # Overwrite file content
+        if os.path.exists(log_path):
+            if(file_size := os.path.getsize(log_path)) >= 0: 
+                os.remove(log_path)
                 returned_val_compilation = os.system(cargo_check)
 
-            # 0 means success   
-            if returned_val_compilation == 0:
+        else: 
+            returned_val_compilation = os.system(cargo_check)
 
-                #Execution pipeline
-                cargo_test: str = "cargo test --bin " +file_prefix+ " --message-format json >> " + log_path
-                returned_val_execution = os.system(cargo_test)
-                
-                if returned_val_execution == 0:
-                    result.append("passed")
-                else:
-                   result.append(f"failed: execution error") 
+        # 0 means success   
+        if returned_val_compilation == 0:
 
+            #Execution pipeline
+            cargo_test: str = "cargo test --bin " +file_prefix+ " --message-format json >> " + log_path
+            returned_val_execution = os.system(cargo_test)
+            
+            if returned_val_execution == 0:
+                result.append("passed")
             else:
-                result.append(f"failed: compilation error")
+                result.append(f"failed: execution error") 
+
+        else:
+            result.append(f"failed: compilation error")
 
 
-        elif "java" in lowered_language.lower():
-            assert tmp_dir is not None, "Java should be evaluated in a temporary dir."
+    elif "java" in lowered_language.lower():
+        assert tmp_dir is not None, "Java should be evaluated in a temporary dir."
 
-            import os
-            import shutil
+        import os
+        import shutil
 
-            if "tmp" not in tmp_dir:
-                tmp_dir = os.path.join(tmp_dir, "tmp")
-            tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
-            if not os.path.exists(tmp_dir):
-                os.makedirs(tmp_dir)
+        if "tmp" not in tmp_dir:
+            tmp_dir = os.path.join(tmp_dir, "tmp")
+        tmp_dir = os.path.join(tmp_dir, f"{task_id.replace('/', '-')}-{random_id}")
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
 
-            os.chdir(tmp_dir)
-            open(os.path.join(tmp_dir, "Main.java"), 'w').write(problem_generation["test_code"])
-            res = "failed: unknown error"
-            compile_returncode = -1
-            for _ in range(5):
-                try:
-                    compilation_result = subprocess.run(['javac', os.path.join(tmp_dir, "Main.java")], timeout=5,
-                                                        capture_output=True)
-                    compile_returncode = compilation_result.returncode
-                    break
-                except subprocess.TimeoutExpired as e:
-                    continue
-            if compile_returncode != 0:
-                res = "failed: compilation error"
-            else:
-                exec_result = None
-                try:
-                    # WARNING
-                    # This program exists to execute untrusted model-generated code. Although
-                    # it is highly unlikely that model-generated code will do something overtly
-                    # malicious in response to this test suite, model-generated code may act
-                    # destructively due to a lack of model capability or alignment.
-                    # Users are strongly encouraged to sandbox this evaluation suite so that it
-                    # does not perform destructive actions on their host or network.
-                    # Once you have read this disclaimer and taken appropriate precautions,
-                    # uncomment the following line and proceed at your own risk:
-                    # exec_result = subprocess.run([f'java', '-cp', tmp_dir, 'Main'], timeout=timeout, capture_output=True)
-                    if exec_result.returncode == 0:
-                        res = "passed"
-                    elif exec_result.returncode == 1:
-                        if "AssertionError" in exec_result.stderr.decode('unicode-escape'):
-                            res = "failed: wrong answer"
-                        else:
-                            res = f"failed: {exec_result.stderr.decode()}"
-                except subprocess.TimeoutExpired as e:
-                    res = "time out"
-                except BaseException as e:
-                    res = f"failed: {e}"
-            result.append(res)
+        os.chdir(tmp_dir)
+        open(os.path.join(tmp_dir, "Main.java"), 'w').write(problem_generation["test_code"])
+        res = "failed: unknown error"
+        compile_returncode = -1
+        for _ in range(5):
+            try:
+                compilation_result = subprocess.run(['javac', os.path.join(tmp_dir, "Main.java")], timeout=5,
+                                                    capture_output=True)
+                compile_returncode = compilation_result.returncode
+                break
+            except subprocess.TimeoutExpired as e:
+                continue
+        if compile_returncode != 0:
+            res = "failed: compilation error"
+        else:
+            exec_result = None
+            try:
+                # WARNING
+                # This program exists to execute untrusted model-generated code. Although
+                # it is highly unlikely that model-generated code will do something overtly
+                # malicious in response to this test suite, model-generated code may act
+                # destructively due to a lack of model capability or alignment.
+                # Users are strongly encouraged to sandbox this evaluation suite so that it
+                # does not perform destructive actions on their host or network.
+                # Once you have read this disclaimer and taken appropriate precautions,
+                # uncomment the following line and proceed at your own risk:
+                # exec_result = subprocess.run([f'java', '-cp', tmp_dir, 'Main'], timeout=timeout, capture_output=True)
+                if exec_result.returncode == 0:
+                    res = "passed"
+                elif exec_result.returncode == 1:
+                    if "AssertionError" in exec_result.stderr.decode('unicode-escape'):
+                        res = "failed: wrong answer"
+                    else:
+                        res = f"failed: {exec_result.stderr.decode()}"
+            except subprocess.TimeoutExpired as e:
+                res = "time out"
+            except BaseException as e:
+                res = f"failed: {e}"
+        result.append(res)
 
-            shutil.rmtree(tmp_dir)
-        
+        shutil.rmtree(tmp_dir)
+
+
+def check_correctness(
+        task_id: str,
+        problem_generation: dict,
+        lowered_language: str,
+        timeout: float = 3.0,
+        tmp_dir: str = None,
+        completion_id: Optional[int] = None,
+) -> Dict:
+    """
+    Evaluates the functional correctness of a completion by running the test
+    suite provided in the problem.
+    """
     manager = multiprocessing.Manager()
     result = manager.list()
 
-    p = multiprocessing.Process(target=unsafe_execute, args=(tmp_dir,))
+    p = multiprocessing.Process(
+        target=unsafe_execute, args=(tmp_dir, lowered_language, timeout, result))
     p.start()
     p.join(timeout=timeout + 1)
     if p.is_alive():
